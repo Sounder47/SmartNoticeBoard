@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notice Details</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; }
+        .badge.urgent { background: #e11d48; color: white; }
+        .badge.standard { background: #38bdf8; color: #0f172a; }
+        h1 { margin: 0 0 15px 0; font-size: 1.8rem; line-height: 1.3; }
+        .meta { color: #94a3b8; font-size: 0.9rem; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        .message { font-size: 1.1rem; white-space: pre-wrap; margin-bottom: 25px; }
+        img { max-width: 100%; border-radius: 12px; margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.1); }
+        
+        .pdf-btn { display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; padding: 18px; border-radius: 15px; font-weight: bold; font-size: 1.1rem; text-align: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+        .pdf-btn:active { transform: scale(0.98); }
+        
+        .back-link { display: block; text-align: center; margin-top: 30px; color: #38bdf8; text-decoration: none; font-size: 1rem; }
+        .error { text-align: center; padding: 50px 20px; color: #fb7185; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+    {% if notice %}
+    <div class="container">
+        {% if notice.class == 0 %}
+            <span class="badge urgent">📢 URGENT UPDATE</span>
+        {% else %}
+            <span class="badge standard">Class 0{{ notice.class }}</span>
+        {% endif %}
+        
+        <h1>{{ notice.title }}</h1>
+        
+        <div class="meta">
+            {% if notice.expiry %}Valid until: {{ notice.expiry.replace('T', ' ') }}<br>{% endif %}
+            Notice ID: #{{ notice.id }}
+        </div>
+
+        {% if notice.image %}
+            <img src="{{ url_for('static', filename='uploads/' + notice.image) }}" alt="Notice Image">
+        {% endif %}
+
+        <div class="message">{{ notice.message }}</div>
+
+        {% if notice.pdf %}
+            <a href="{{ url_for('static', filename='uploads/' + notice.pdf) }}" download class="pdf-btn">
+                📄 Download Attached PDF
+            </a>
+        {% endif %}
+        
+        <a href="{{ url_for('mobile_landing') }}" class="back-link">← View All Notices</a>
+    </div>
+    {% else %}
+    <div class="error">
+        <h2>Notice Not Found</h2>
+        <p>This notice may have expired or been removed by the administrator.</p>
+        <a href="{{ url_for('mobile_landing') }}" class="back-link">Go to Directory</a>
+    </div>
+    {% endif %}
+</body>
+</html>

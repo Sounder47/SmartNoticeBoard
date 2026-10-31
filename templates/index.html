@@ -2,46 +2,241 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Smart Notice Board</title>
-
-    <script>
-        // Auto-refresh every 5 seconds
-        setTimeout(() => { location.reload(); }, 5000);
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Smart Notice Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: Arial; background: #f4f6f8; margin: 0; }
-        header { background: #1e3a8a; color: white; padding: 20px; text-align: center; }
-        .container { padding: 20px; }
-        .notice {
-            background: white; border-left: 6px solid #2563eb;
-            padding: 15px; margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        :root {
+            --bg-dark: #0f172a;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-primary: #38bdf8;
+            --accent-urgent: #fb7185;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
         }
-        footer { background: #e5e7eb; text-align: center; padding: 10px; font-size: 14px; }
+
+        * { box-sizing: border-box; transition: all 0.3s ease; -webkit-user-select: none; user-select: none; }
+
+        html, body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(251, 113, 133, 0.1) 0px, transparent 50%);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #broadcast-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: black; z-index: 9999; display: none;
+        }
+        #broadcast-overlay video { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+
+        header { padding: 1.2rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
+        header h1 { font-size: 1.6rem; font-weight: 700; margin: 0; background: linear-gradient(to right, #fff, var(--accent-primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        #clock { font-family: monospace; background: var(--glass); padding: 8px 16px; border-radius: 12px; border: 1px solid var(--glass-border); color: var(--accent-primary); font-weight: 600; }
+        .qr-cta { font-size: 0.85rem; background: rgba(56, 189, 248, 0.1); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3); display: flex; align-items: center; gap: 8px; }
+
+        main { padding: 1.5rem 2rem; flex-grow: 1; display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem; overflow: hidden; }
+
+        .important-sidebar, .class-card { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; padding: 1.2rem; overflow-y: auto; scrollbar-width: none; }
+        .important-sidebar::-webkit-scrollbar, .class-card::-webkit-scrollbar { display: none; }
+
+        .important-sidebar { background: rgba(251, 113, 133, 0.05); border-color: rgba(251, 113, 133, 0.2); }
+        .important-sidebar h2 { font-size: 1.1rem; color: var(--accent-urgent); margin-top: 0; margin-bottom: 1rem; }
+
+        .classes-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; overflow-y: auto; }
+        .class-card h2 { font-size: 1.3rem; margin-bottom: 1rem; border-bottom: 2px solid var(--glass-border); padding-bottom: 8px; }
+
+        .notice-card { background: rgba(255,255,255,0.05); margin-bottom: 15px; padding: 1rem; border-radius: 12px; position: relative; display: flex; gap: 12px; }
+        .notice-card.urgent { background: rgba(251, 113, 133, 0.1); border: 1px solid rgba(251, 113, 133, 0.2); border-left: 4px solid var(--accent-urgent); }
+        .notice-card.standard { border-left: 3px solid var(--accent-primary); }
+        .notice-card.pinned::after { content: '📌'; position: absolute; top: 10px; right: 10px; font-size: 0.9rem; }
+        .notice-card.expired { filter: grayscale(1); opacity: 0.35; }
+
+        .card-content { flex: 1; overflow: hidden; }
+        .card-content b { display: block; font-size: 1.05rem; color: var(--text-main); margin-bottom: 4px; padding-right: 20px;}
+        .card-content p { margin: 0; font-size: 0.9rem; line-height: 1.4; color: #cbd5e1; }
+        .notice-image img { width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); margin-top: 8px; }
+        .expiry { font-size: 0.75rem; color: var(--text-dim); margin-top: 8px; display: block; }
+
+        .qr-section { width: 75px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+        .qr-section img { width: 100%; background: white; padding: 4px; border-radius: 6px; }
+        .qr-section span { font-size: 0.6rem; color: var(--accent-primary); text-align: center; font-weight: bold; }
+        .urgent .qr-section span { color: var(--accent-urgent); }
+
+        .empty-state { color: var(--text-dim); text-align: center; padding: 1.5rem; font-style: italic; font-size: 0.9rem; }
+        .footer-bar { padding: 10px 2rem; border-top: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--text-dim); flex-shrink: 0; }
+
+        @media (max-width: 1200px) {
+            .classes-container { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 992px) {
+            html, body { height: auto !important; overflow-y: auto !important; display: block; }
+            main { display: flex; flex-direction: column; overflow: visible; padding: 1rem; }
+            .important-sidebar { width: 100%; overflow: visible; margin-bottom: 1rem; }
+            .classes-container { overflow: visible; }
+            .class-card { overflow: visible; }
+        }
+
+        @media (max-width: 768px) {
+            header { flex-direction: column; text-align: center; gap: 12px; padding: 1rem; }
+            header h1 { font-size: 1.4rem; }
+            .qr-cta { display: none; }
+            .classes-container { grid-template-columns: 1fr; }
+            .notice-card { flex-direction: column; }
+            .qr-section { width: 100%; flex-direction: row; justify-content: flex-start; border-top: 1px solid var(--glass-border); padding-top: 10px; margin-top: 5px; }
+            .qr-section img { width: 60px; }
+            .footer-bar { flex-direction: column; gap: 10px; text-align: center; padding: 1rem; }
+        }
     </style>
 </head>
 <body>
 
+<div id="broadcast-overlay"></div>
+
 <header>
-    <h1>📢 Smart Notice Board</h1>
-    <p>College Digital Notice Display</p>
+    <h1>📋 Digital Notice Board</h1>
+    <div class="qr-cta">📱 Scan QR codes for PDFs & Details</div>
+    <div id="clock">Loading...</div>
 </header>
 
-<div class="container">
-    {% for notice in notices %}
-    <div class="notice">
-        <h3>{{ notice.title }}</h3>
-        <p>{{ notice.description }}</p>
-    </div>
-    {% else %}
-    <p>No notices available</p>
-    {% endfor %}
+<main>
+    <aside class="important-sidebar">
+        <h2>📢 URGENT UPDATES</h2>
+        {% set ns = namespace(imp=false) %}
+        {% for n in notices if n.class == 0 %}
+            {% set ns.imp = true %}
+            {% set expired = n.expiry and n.expiry < now %}
+            <div class="notice-card urgent {% if expired %}expired{% endif %} {% if n.get('pinned') %}pinned{% endif %}">
+                <div class="card-content">
+                    <b>{{ n.title }}</b>
+                    <p>{{ n.message }}</p>
+
+                    {% if n.pdf or n.image %}
+                    <div style="margin-top: 10px; display: flex; gap: 8px;">
+                        {% if n.pdf %}<span style="background: rgba(225, 29, 72, 0.15); color: #fb7185; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; border: 1px solid rgba(225, 29, 72, 0.3);">📄 PDF Attached</span>{% endif %}
+                        {% if n.image %}<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; border: 1px solid rgba(56, 189, 248, 0.3);">🖼️ Image Attached</span>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if n.image %}<div class="notice-image"><img src="{{ url_for('static', filename='uploads/' + n.image) }}"></div>{% endif %}
+                    {% if n.expiry %}<span class="expiry">Until: {{ n.expiry.replace('T', ' ') }}</span>{% endif %}
+                </div>
+
+                {% if n.pdf or n.image %}
+                <div class="qr-section">
+                    <img src="{{ url_for('static', filename='qrcodes/' + n.qr_code) }}" alt="QR">
+                    <span>{% if n.pdf %}SCAN FOR PDF{% else %}SCAN TO SAVE{% endif %}</span>
+                </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+        {% if not ns.imp %}<div class="empty-state">No active urgent notices.</div>{% endif %}
+    </aside>
+
+    <section class="classes-container">
+        {% for class_num in [1, 2, 3] %}
+        <div class="class-card">
+            <h2>
+                {% if class_num == 1 %}2nd Year
+                {% elif class_num == 2 %}3rd Year
+                {% elif class_num == 3 %}Final Year
+                {% endif %}
+            </h2>
+            {% set ns2 = namespace(found=false) %}
+            {% for n in notices if n.class == class_num %}
+                {% set ns2.found = true %}
+                {% set expired = n.expiry and n.expiry < now %}
+                <div class="notice-card standard {% if expired %}expired{% endif %} {% if n.get('pinned') %}pinned{% endif %}">
+                    <div class="card-content">
+                        <b>{{ n.title }}</b>
+                        <p>{{ n.message }}</p>
+
+                        {% if n.pdf or n.image %}
+                        <div style="margin-top: 10px; display: flex; gap: 8px;">
+                            {% if n.pdf %}<span style="background: rgba(225, 29, 72, 0.15); color: #fb7185; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; border: 1px solid rgba(225, 29, 72, 0.3);">📄 PDF Attached</span>{% endif %}
+                            {% if n.image %}<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; border: 1px solid rgba(56, 189, 248, 0.3);">🖼️ Image Attached</span>{% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if n.image %}<div class="notice-image"><img src="{{ url_for('static', filename='uploads/' + n.image) }}"></div>{% endif %}
+                        {% if n.expiry %}<span class="expiry">Until: {{ n.expiry.replace('T', ' ') }}</span>{% endif %}
+                    </div>
+
+                    {% if n.pdf or n.image %}
+                    <div class="qr-section">
+                        <img src="{{ url_for('static', filename='qrcodes/' + n.qr_code) }}" alt="QR">
+                        <span>{% if n.pdf %}SCAN FOR PDF{% else %}SCAN TO SAVE{% endif %}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            {% if not ns2.found %}<div class="empty-state">No notices for this year.</div>{% endif %}
+        </div>
+        {% endfor %}
+    </section>
+</main>
+
+<div class="footer-bar">
+    <span>🏫 Or visit: {{ request.url_root }}mobile</span>
+    <span id="last-updated">Last refreshed: just now</span>
 </div>
 
-<footer>
-    © 2026 Smart Notice Board | ECE Final Year Project
-</footer>
+<script>
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) e.preventDefault(); });
 
+    function updateClock() {
+        const now = new Date();
+        document.getElementById("clock").innerHTML = `<span style="opacity:0.6">${now.toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'})}</span> | ${now.toLocaleTimeString()}`;
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    let lastNoticeData = null;
+    async function checkForUpdates() {
+        try {
+            const res = await fetch('/api/notices');
+            const data = await res.text();
+            if (lastNoticeData === null) lastNoticeData = data;
+            else if (lastNoticeData !== data) location.reload();
+            document.getElementById('last-updated').textContent = 'Last checked: ' + new Date().toLocaleTimeString();
+        } catch (e) {}
+    }
+    setInterval(checkForUpdates, 5000); checkForUpdates();
+</script>
+
+<script>
+    let isBroadcastActive = false;
+    setInterval(async () => {
+        try {
+            let response = await fetch('/api/broadcast');
+            let data = await response.json();
+            let overlay = document.getElementById('broadcast-overlay');
+
+            if (data.active) {
+                if (!isBroadcastActive) {
+                    overlay.innerHTML = `<video src="${data.video}" autoplay loop muted></video>`;
+                    overlay.style.display = 'block';
+                    isBroadcastActive = true;
+                }
+            } else {
+                if (isBroadcastActive) {
+                    overlay.style.display = 'none';
+                    overlay.innerHTML = '';
+                    isBroadcastActive = false;
+                }
+            }
+        } catch (error) { console.log("Error checking broadcast:", error); }
+    }, 3000);
+</script>
 </body>
 </html>

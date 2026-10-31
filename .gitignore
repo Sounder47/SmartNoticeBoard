@@ -1,0 +1,17 @@
+.*
+!.gitignore
+!.git
+
+.cache/
+.local/
+.virtualenvs/
+.ipython/
+__pycache__/
+*.py[cod]
+
+instance/
+static/uploads/
+static/qrcodes/
+developer-portfolio/
+static/uploads/
+static/qrcodes/

@@ -1,23 +1,201 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Admin Panel</title>
+    <title>Admin Panel - Smart Notice Board</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: Arial; background: #f1f5f9; padding: 20px; }
-        .box { background: white; padding: 20px; max-width: 500px; }
-        input, textarea, button { width: 100%; padding: 10px; margin-top: 10px; }
-        button { background: #2563eb; color: white; border: none; cursor: pointer; }
+        :root {
+            --primary: linear-gradient(135deg, #667eea, #764ba2);
+            --success: linear-gradient(135deg, #11998e, #38ef7d);
+            --danger: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            --warning: linear-gradient(135deg, #f093fb, #f5576c);
+            --glass: rgba(255,255,255,0.08);
+            --border: rgba(255,255,255,0.2);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #0f0f23, #1c1c3c); color: white; padding: 20px; }
+        .container { max-width:1200px; margin:auto; }
+        .header { text-align:center; margin-bottom:40px; }
+        .header h1 { font-size:2.8rem; background: var(--primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .user-badge { display:inline-block; margin-top: 10px; padding: 5px 15px; background: rgba(56, 239, 125, 0.1); color: #38ef7d; border-radius: 20px; font-size: 0.9rem; border: 1px solid rgba(56, 239, 125, 0.3); }
+        .cards { display:grid; grid-template-columns: 1fr 1fr; gap:30px; }
+        .card { background: var(--glass); backdrop-filter: blur(15px); border-radius:20px; padding:30px; border:1px solid var(--border); }
+        h2 { margin-bottom:20px; }
+        .form-group { margin-bottom:15px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 0.9rem; opacity: 0.85; }
+        input, textarea, select { width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background: rgba(255,255,255,0.1); color:white; font-family: inherit; font-size: 0.95rem; }
+        textarea { min-height:100px; resize:vertical; }
+        input:focus, textarea:focus, select:focus { outline:none; border-color:#38ef7d; }
+        input:disabled { opacity: 0.6; cursor: not-allowed; }
+        .checkbox-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.07); border-radius: 10px; border: 1px solid var(--border); cursor: pointer; }
+        .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        button { width:100%; padding:15px; border:none; border-radius:12px; background: var(--success); color:white; font-weight:bold; cursor:pointer; transition:0.3s; font-size: 1rem; }
+        button:hover { transform: translateY(-3px); }
+        .notice-item { background: rgba(255,255,255,0.05); padding:20px; border-radius:15px; margin-bottom:15px; border-left:5px solid #38ef7d; position: relative; display: flex; gap: 15px;}
+        .notice-content { flex: 1; }
+        .notice-qr { width: 100px; text-align: center; }
+        .notice-qr img { width: 100%; border-radius: 8px; background: white; padding: 5px; margin-bottom: 5px;}
+        .notice-item.expired { border-left-color:#ff4d4d; opacity:0.7; }
+        .notice-item.pinned-notice { border-left-color: #f5a623; }
+        .notice-title { font-size:1.2rem; font-weight:bold; margin-bottom:5px; }
+        .count-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+        .count-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; background: rgba(255,255,255,0.1); border: 1px solid var(--border); }
+        .badge { display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.8rem; margin-right: 4px; margin-bottom:8px; }
+        .badge-important { background:#fb7185; } .badge-class { background:#667eea; } .badge-expired { background:#444; } .badge-pinned { background:#f5a623; color: #000; }
+        .meta { font-size:0.85rem; opacity:0.8; margin-top:8px; }
+        .actions { margin-top:15px; display: flex; gap: 8px; flex-wrap: wrap;}
+        .btn-action { padding:8px 15px; border-radius:8px; text-decoration:none; color:white; font-size:0.9rem; display: inline-block; text-align: center;}
+        .edit { background: var(--warning); } .delete { background: var(--danger); } .download-qr { background: #4b5563; font-size: 0.8rem; width: 100%; padding: 5px;}
+        .empty { text-align:center; padding:40px; opacity:0.6; }
+        select option { background: #1c1c3c; }
+        @media(max-width:768px){ .cards { grid-template-columns:1fr; } .notice-item { flex-direction: column; } .notice-qr { width: 120px; margin: 0 auto; } }
     </style>
 </head>
 <body>
 
-<h2>🔐 Admin Panel</h2>
+{% if user.role != 'student_rep' %}
+    <div class="card" style="margin-bottom: 30px; border: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.05);">
+        <h2>🎬 Full-Screen Video Broadcast</h2>
+        <p style="margin-bottom: 15px; font-size: 0.9rem; opacity: 0.8;">Upload an MP4 video to instantly take over the entire Kiosk display. It will loop continuously until you stop it.</p>
+        
+        <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+            <form method="POST" action="{{ url_for('toggle_broadcast') }}" enctype="multipart/form-data" style="display: flex; gap: 10px; flex: 1;">
+                <input type="hidden" name="action" value="start">
+                <input type="file" name="video" accept="video/mp4" required style="flex: 1;">
+                <button type="submit" style="background: linear-gradient(135deg, #0ea5e9, #2563eb); width: auto; padding: 12px 25px;">▶️ Start Broadcast</button>
+            </form>
 
-<form method="POST">
-    <input type="text" name="title" placeholder="Notice Title" required>
-    <textarea name="description" rows="4" placeholder="Notice Description" required></textarea>
-    <button type="submit">Save Notice</button>
-</form>
+            <form method="POST" action="{{ url_for('toggle_broadcast') }}">
+                <input type="hidden" name="action" value="stop">
+                <button type="submit" style="background: var(--danger); width: auto; padding: 12px 25px;">⏹️ Stop Active Broadcast</button>
+            </form>
+        </div>
+    </div>
+{% endif %}
 
+<div class="container">
+    <div class="header">
+        <h1>⚙️ Admin Panel</h1>
+        <p>Manage Smart Notice Board</p>
+        
+        <div class="user-badge">
+            👤 Logged in as: <strong>{{ user.username }}</strong> 
+            ({{ user.role | replace('_', ' ') | title }})
+        </div>
+        <br>
+        
+        {% if user.role != 'student_rep' %}
+        <a href="{{ url_for('manage_students') }}" style="display:inline-block; margin-top:15px; padding:8px 15px; background:rgba(56, 189, 248, 0.2); color:#38bdf8; text-decoration:none; border-radius:10px; border:1px solid rgba(56, 189, 248, 0.4); margin-right: 10px; font-weight: bold;">👥 Manage Students</a>
+        {% endif %}
+        
+        <a href="{{ url_for('logout') }}" style="display:inline-block; margin-top:15px; padding:8px 15px; background:rgba(255,255,255,0.1); color:white; text-decoration:none; border-radius:10px; border:1px solid rgba(255,255,255,0.2);">🚪 Secure Logout</a>
+    </div>
+
+    <div class="count-badges">
+        <span class="count-badge">📢 Important: {{ notices | selectattr('class', 'equalto', 0) | list | length }}</span>
+        <span class="count-badge">📘 2nd Year: {{ notices | selectattr('class', 'equalto', 1) | list | length }}/3</span>
+        <span class="count-badge">📗 3rd Year: {{ notices | selectattr('class', 'equalto', 2) | list | length }}/3</span>
+        <span class="count-badge">📕 Final Year: {{ notices | selectattr('class', 'equalto', 3) | list | length }}/3</span>
+    </div>
+
+    <div class="cards">
+        <div class="card">
+            <h2>➕ Add New Notice</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group"><label>📌 Title</label><input name="title" placeholder="Notice Title" required></div>
+                <div class="form-group"><label>💬 Message</label><textarea name="message" placeholder="Notice Message" required></textarea></div>
+                
+                <div class="form-group">
+                    <label>🏫 Target Audience</label>
+                    {% if user.role == 'student_rep' %}
+                        <input type="hidden" name="class" value="{{ user.assigned_class }}">
+                        <input type="text" value="{% if user.assigned_class == 1 %}2nd Year{% elif user.assigned_class == 2 %}3rd Year{% elif user.assigned_class == 3 %}Final Year{% else %}Class {{ user.assigned_class }}{% endif %} (Restricted to your class)" disabled>
+                    {% else %}
+                        <select name="class" required>
+                            <option value="" disabled selected>Select Target</option>
+                            {% if user.role != 'student_rep' %}
+                                <option value="0">📢 Important (All Years)</option>
+                            {% endif %}
+                            <option value="1">2nd Year</option>
+                            <option value="2">3rd Year</option>
+                            <option value="3">Final Year</option>
+                        </select>
+                    {% endif %}
+                </div>
+
+                <div class="form-group"><label>⏰ Expiry Date & Time (optional)</label><input type="datetime-local" name="expiry"></div>
+                <div class="form-group"><label>🖼️ Image (optional)</label><input type="file" name="image" accept="image/*"></div>
+                <div class="form-group"><label>📄 PDF Attachment (optional)</label><input type="file" name="pdf" accept=".pdf"></div>
+                
+                {% if user.role != 'student_rep' %}
+                <div class="form-group"><label class="checkbox-row"><input type="checkbox" name="pinned" value="1">📌 Pin this notice to top</label></div>
+                {% endif %}
+                
+                <button type="submit">🚀 Publish Notice</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>📋 All Notices</h2>
+            {% if notices %}
+                {% for n in notices %}
+                {% set expired = n['expiry'] and n['expiry'] < now %}
+                <div class="notice-item {% if expired %}expired{% endif %} {% if n.get('pinned') %}pinned-notice{% endif %}">
+                    <div class="notice-content">
+                        <div class="notice-title">{{ n['title'] }}</div>
+                        {% if n['class'] == 0 %}
+                            <span class="badge badge-important">📢 Important</span>
+                        {% else %}
+                            <span class="badge badge-class">
+                                {% if n['class'] == 1 %}2nd Year
+                                {% elif n['class'] == 2 %}3rd Year
+                                {% elif n['class'] == 3 %}Final Year
+                                {% else %}Class {{ n['class'] }}
+                                {% endif %}
+                            </span>
+                        {% endif %}
+                        
+                        {% if n.get('pinned') %}<span class="badge badge-pinned">📌 Pinned</span>{% endif %}
+                        {% if expired %}<span class="badge badge-expired">Expired</span>{% endif %}
+                        {% if n.pdf %}<span class="badge" style="background: #e11d48;">📄 PDF Attached</span>{% endif %}
+                        
+                        <div style="margin-top: 10px; font-size: 0.95rem;">{{ n['message'] }}</div>
+                        
+                        <div style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                            <strong style="color: #38bdf8; font-size: 0.9rem;">👁️ Views: {{ n.view_count }}</strong>
+                            {% if n.viewers %}
+                                <details style="margin-top: 5px; cursor: pointer;">
+                                    <summary style="font-size: 0.85rem; color: #94a3b8; outline: none;">View Student List</summary>
+                                    <div style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1; line-height: 1.6; padding-left: 10px; border-left: 2px solid #38bdf8;">
+                                        {{ n.viewers | join(', ') }}
+                                    </div>
+                                </details>
+                            {% else %}
+                                <span style="font-size: 0.8rem; color: #64748b; margin-left: 8px;">(No scans yet)</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="meta">{% if n['expiry'] %}⏰ Expires: {{ n['expiry'].replace('T', ' ') }}{% else %}No Expiry{% endif %}</div>
+                        
+                        <div class="actions">
+                            <a href="{{ url_for('edit_notice', notice_id=n['id']) }}" class="btn-action edit">✏️ Edit</a>
+                            <a href="{{ url_for('delete_notice', notice_id=n['id']) }}" class="btn-action delete" onclick="return confirm('Delete this notice?')">🗑️ Delete</a>
+                        </div>
+                    </div>
+                    {% if n.qr_code %}
+                    <div class="notice-qr">
+                        <img src="{{ url_for('static', filename='qrcodes/' + n.qr_code) }}" alt="QR Code">
+                        <a href="{{ url_for('static', filename='qrcodes/' + n.qr_code) }}" download="Notice_{{ n.id }}_QR.png" class="btn-action download-qr">📥 Print QR</a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty"><h3>No Notices Available</h3><p>Add your first notice.</p></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 </body>
 </html>

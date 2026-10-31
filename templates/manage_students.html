@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Manage Students - Smart Notice Board</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --primary: linear-gradient(135deg, #667eea, #764ba2);
+            --success: linear-gradient(135deg, #11998e, #38ef7d);
+            --danger: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            --glass: rgba(255,255,255,0.08);
+            --border: rgba(255,255,255,0.2);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #0f0f23, #1c1c3c); color: white; padding: 20px; }
+        .container { max-width:1000px; margin:auto; }
+        .header { text-align:center; margin-bottom:40px; }
+        .header h1 { font-size:2.5rem; background: var(--primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .nav-btn { display:inline-block; margin-top:15px; padding:10px 20px; background:rgba(255,255,255,0.1); color:white; text-decoration:none; border-radius:10px; border:1px solid rgba(255,255,255,0.2); font-weight: bold; }
+        .nav-btn:hover { background: rgba(255,255,255,0.2); }
+
+        .cards { display:grid; grid-template-columns: 1fr 1.5fr; gap:30px; }
+        .card { background: var(--glass); backdrop-filter: blur(15px); border-radius:20px; padding:30px; border:1px solid var(--border); align-self: start; }
+        h2 { margin-bottom:20px; font-size: 1.4rem;}
+
+        .form-group { margin-bottom:15px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 0.9rem; opacity: 0.85; }
+        input { width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background: rgba(255,255,255,0.1); color:white; font-size: 0.95rem; }
+        input:focus { outline:none; border-color:#38ef7d; }
+
+        button { width:100%; padding:14px; border:none; border-radius:12px; background: var(--success); color:white; font-weight:bold; cursor:pointer; transition:0.3s; font-size: 1rem; margin-top: 10px;}
+        button:hover { transform: translateY(-3px); }
+
+        .student-list { display: flex; flex-direction: column; gap: 10px; max-height: 500px; overflow-y: auto; padding-right: 10px; }
+        .student-item { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #38bdf8; }
+        .student-info strong { font-size: 1.1rem; display: block; }
+        .student-info span { font-size: 0.85rem; color: #94a3b8; }
+
+        .delete-btn { background: var(--danger); padding: 8px 12px; border-radius: 8px; color: white; text-decoration: none; font-size: 0.85rem; font-weight: bold; }
+
+        @media(max-width:768px){ .cards { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>👥 Student Management Portal</h1>
+        <p>Add or remove students authorized to view notices.</p>
+        <a href="{{ url_for('admin') }}" class="nav-btn">⬅️ Back to Admin Panel</a>
+    </div>
+
+    <div class="cards">
+        <div class="card">
+            <h2>➕ Register New Student</h2>
+            <form method="POST">
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" name="name" placeholder="e.g. Your Name" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Full Register Number</label>
+                    <input type="text" name="reg_no" placeholder="e.g. 5105xx1060xx" required autocomplete="off">
+                </div>
+                <button type="submit">✅ Add Student</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>📋 Authorized Students ({{ students|length }})</h2>
+            {% if students %}
+                <div class="student-list">
+                    {% for student in students %}
+                    <div class="student-item">
+                        <div class="student-info">
+                            <strong>{{ student.name.title() }}</strong>
+                            <span>Reg: {{ student.reg_no }}</span>
+                        </div>
+                        <a href="{{ url_for('delete_student', student_id=student.id) }}" class="delete-btn" onclick="return confirm('Remove this student?')">🗑️ Remove</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="text-align:center; padding:30px; opacity:0.6;">
+                    <h3>No students found</h3>
+                    <p>Register your first student on the left.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

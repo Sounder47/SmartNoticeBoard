@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Notice Board</title>
+    
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; margin: 0; padding: 0; }
+        header { background: rgba(255,255,255,0.05); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; backdrop-filter: blur(10px); z-index: 10;}
+        header h1 { margin: 0; font-size: 1.5rem; color: #38bdf8; }
+        
+        #installAppBtn { display: none; background: linear-gradient(135deg, #11998e, #38ef7d); color: #000; border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 10px rgba(56, 239, 125, 0.3); }
+
+        .container { padding: 20px; max-width: 600px; margin: 0 auto; }
+        
+        .section-title { font-size: 1.2rem; margin: 30px 0 15px 0; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;}
+        .section-title.urgent { color: #fb7185; border-bottom-color: rgba(251, 113, 133, 0.3); }
+
+        .m-card { display: block; background: rgba(255,255,255,0.05); border-radius: 15px; padding: 15px; margin-bottom: 15px; text-decoration: none; color: white; border: 1px solid rgba(255,255,255,0.05); position: relative;}
+        .m-card:active { background: rgba(255,255,255,0.1); }
+        .m-card.urgent-card { border-left: 4px solid #e11d48; background: rgba(225, 29, 72, 0.05); }
+        .m-card.standard-card { border-left: 4px solid #38bdf8; }
+        
+        .m-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; padding-right: 25px;}
+        .m-desc { font-size: 0.9rem; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .m-meta { font-size: 0.8rem; color: #64748b; margin-top: 10px; display: flex; gap: 10px;}
+        
+        .pdf-icon { color: #e11d48; font-weight: bold; }
+        .chevron { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>📋 Student Portal</h1>
+    <button id="installAppBtn">📲 Install App</button>
+</header>
+
+<div class="container">
+    
+    <div class="section-title urgent">📢 Urgent Announcements</div>
+    {% set ns = namespace(u=false) %}
+    {% for n in notices if n.class == 0 %}
+        {% if not n.expiry or n.expiry >= now %}
+        {% set ns.u = true %}
+        <a href="{{ url_for('notice_detail', notice_id=n.id) }}" class="m-card urgent-card">
+            <div class="m-title">{{ n.title }} {% if n.get('pinned') %}📌{% endif %}</div>
+            <div class="m-desc">{{ n.message }}</div>
+            <div class="m-meta">
+                {% if n.pdf %}<span class="pdf-icon">📄 PDF</span>{% endif %}
+                {% if n.image %}<span>🖼️ Image</span>{% endif %}
+            </div>
+            <span class="chevron">›</span>
+        </a>
+        {% endif %}
+    {% endfor %}
+    {% if not ns.u %}<p style="color:#64748b; font-size:0.9rem;">No urgent announcements right now.</p>{% endif %}
+
+    {% for c in [1, 2, 3] %}
+        <div class="section-title">
+            📘 {% if c == 1 %}2nd Year{% elif c == 2 %}3rd Year{% elif c == 3 %}Final Year{% endif %} Notices
+        </div>
+        {% set ns2 = namespace(s=false) %}
+        {% for n in notices if n.class == c %}
+            {% if not n.expiry or n.expiry >= now %}
+            {% set ns2.s = true %}
+            <a href="{{ url_for('notice_detail', notice_id=n.id) }}" class="m-card standard-card">
+                <div class="m-title">{{ n.title }} {% if n.get('pinned') %}📌{% endif %}</div>
+                <div class="m-desc">{{ n.message }}</div>
+                <div class="m-meta">
+                    {% if n.pdf %}<span class="pdf-icon">📄 PDF</span>{% endif %}
+                    {% if n.image %}<span>🖼️ Image</span>{% endif %}
+                </div>
+                <span class="chevron">›</span>
+            </a>
+            {% endif %}
+        {% endfor %}
+        {% if not ns2.s %}
+            <p style="color:#64748b; font-size:0.9rem;">
+                No notices for {% if c == 1 %}2nd Year{% elif c == 2 %}3rd Year{% elif c == 3 %}Final Year{% endif %}.
+            </p>
+        {% endif %}
+    {% endfor %}
+
+</div>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register("/static/sw.js")
+                .then((reg) => console.log('Service worker registered.', reg))
+                .catch((err) => console.log('Service worker not registered.', err));
+        });
+    }
+
+    let deferredPrompt;
+    const installBtn = document.getElementById('installAppBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt !== null) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installBtn.style.display = 'none';
+            }
+            deferredPrompt = null;
+        }
+    });
+</script>
+
+</body>
+</html>

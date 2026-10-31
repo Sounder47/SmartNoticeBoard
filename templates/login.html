@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login | Smart Notice Board</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); width: 350px; text-align: center; }
+        input { width: 100%; padding: 14px; margin: 10px 0 20px 0; border-radius: 10px; border: 1px solid #334155; background: #1e293b; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 14px; border-radius: 10px; border: none; background: #38bdf8; color: #0f172a; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        .error { color: #fb7185; background: rgba(251, 113, 133, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🔒 Portal Login</h2>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <form method="POST">
+            <input type="text" name="username" placeholder="Username (e.g., hod, rep1)" required autofocus>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Sign In</button>
+        </form>
+    </div>
+</body>
+</html>

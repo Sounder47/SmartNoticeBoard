@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Edit Notice - Admin Panel</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* (Keep your existing CSS here, just pasting the core to save space, but it's identical to the original edit.html CSS) */
+        :root { --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); --glass: rgba(255, 255, 255, 0.1); --shadow: 0 20px 40px rgba(0,0,0,0.1); --border: rgba(255, 255, 255, 0.2); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #0f0f23 0%, #2a2a4a 50%, #1a1a3a 100%); color: #ffffff; min-height: 100vh; padding: 40px 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: var(--glass); backdrop-filter: blur(20px); border-radius: 25px; border: 1px solid var(--border); padding: 50px; box-shadow: var(--shadow); }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; opacity: 0.9; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 16px 20px; border-radius: 14px; background: rgba(255, 255, 255, 0.12); border: 1px solid var(--border); color: white; font-size: 1rem; font-family: inherit; }
+        .form-group textarea { resize: vertical; min-height: 120px; }
+        .checkbox-row { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: rgba(255, 255, 255, 0.08); border-radius: 14px; border: 1px solid var(--border); cursor: pointer; }
+        .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .class-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+        .class-option input[type="radio"] { display: none; }
+        .class-option label { width: 100%; padding: 15px 20px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); border: 2px solid var(--border); cursor: pointer; text-align: center; }
+        .class-option input[type="radio"]:checked + label { background: rgba(56, 239, 125, 0.2); border-color: #38ef7d; }
+        .form-actions { display: flex; gap: 20px; margin-top: 35px; }
+        .btn { flex: 1; padding: 18px 24px; border: none; border-radius: 14px; font-size: 1.05rem; font-weight: bold; cursor: pointer; text-decoration: none; text-align: center; color: white; }
+        .btn-update { background: var(--success-gradient); } .btn-back { background: var(--primary-gradient); }
+        .file-status { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h2 style="margin-bottom: 30px;">✏️ Edit Notice</h2>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group"><label>📌 Notice Title</label><input name="title" value="{{ notice.title }}" required></div>
+            <div class="form-group"><label>💬 Message Content</label><textarea name="message" required>{{ notice.message }}</textarea></div>
+            <div class="form-group">
+                <label>🏫 Target Class</label>
+                <div class="class-group">
+                    <div class="class-option"><input type="radio" id="c0" name="class" value="0" {% if notice.class == 0 %}checked{% endif %}><label for="c0">📢 Important</label></div>
+                    <div class="class-option"><input type="radio" id="c1" name="class" value="1" {% if notice.class == 1 %}checked{% endif %}><label for="c1">📘 Class 1</label></div>
+                    <div class="class-option"><input type="radio" id="c2" name="class" value="2" {% if notice.class == 2 %}checked{% endif %}><label for="c2">📗 Class 2</label></div>
+                    <div class="class-option"><input type="radio" id="c3" name="class" value="3" {% if notice.class == 3 %}checked{% endif %}><label for="c3">📕 Class 3</label></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>🖼️ Notice Image</label>
+                {% if notice.image %}
+                    <div class="file-status">
+                        <img src="{{ url_for('static', filename='uploads/' + notice.image) }}" style="max-width:150px; border-radius:8px; display:block; margin-bottom:10px;">
+                        <label class="checkbox-row" style="padding:8px 12px; display:inline-flex; width:auto;"><input type="checkbox" name="delete_image" value="1">❌ Delete Current Image</label>
+                    </div>
+                {% endif %}
+                <input type="file" name="image" accept="image/*">
+            </div>
+
+            <div class="form-group">
+                <label>📄 PDF Attachment</label>
+                {% if notice.pdf %}
+                    <div class="file-status">
+                        <span style="display:inline-block; margin-bottom:10px; color:#fb7185;">📄 Current PDF attached</span>
+                        <label class="checkbox-row" style="padding:8px 12px; display:inline-flex; width:auto;"><input type="checkbox" name="delete_pdf" value="1">❌ Remove PDF</label>
+                    </div>
+                {% endif %}
+                <input type="file" name="pdf" accept=".pdf">
+            </div>
+
+            <div class="form-group"><label>⏰ Expiry Date & Time</label><input type="datetime-local" name="expiry" {% if notice.expiry %}value="{{ notice.expiry[:16] }}"{% endif %}></div>
+            <div class="form-group"><label class="checkbox-row"><input type="checkbox" name="pinned" value="1" {% if notice.get('pinned') %}checked{% endif %}>📌 Pin this notice to top</label></div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-update">✅ Update Notice</button>
+                <a href="{{ url_for('admin') }}" class="btn btn-back">↩️ Back to Admin</a>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>
